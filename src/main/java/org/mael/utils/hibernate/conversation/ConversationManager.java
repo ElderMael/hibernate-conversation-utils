@@ -9,30 +9,41 @@ import org.hibernate.engine.spi.SessionFactoryImplementor;
 
 public class ConversationManager {
 
-	private Map<UUID, Session> conversationMap = new HashMap<UUID, Session>();
+	private static Map<UUID, Session> conversationMap = new HashMap<UUID, Session>();
 
-	private SessionFactoryImplementor sessionFactory;
+	private static SessionFactoryImplementor sessionFactory;
 
-	public ConversationManager() {
+	private ConversationManager() {
 
 	}
 
-	public UUID createConversation() {
+	public static UUID createConversation() {
 		UUID conversationId = UUID.randomUUID();
 
-		Session sessionForConversation = this.sessionFactory.openSession();
+		Session sessionForConversation = sessionFactory.openSession();
 
 		conversationMap.put(conversationId, sessionForConversation);
 
 		return conversationId;
 	}
 
-	public SessionFactoryImplementor getSessionFactory() {
+	public static Session getSessionFromConversation(UUID conversationId) {
+
+		return conversationMap.get(conversationId);
+	}
+
+	public static void endConversation(UUID conversationId) {
+
+		conversationMap.remove(conversationId);
+	}
+
+	public static SessionFactoryImplementor getSessionFactory() {
 		return sessionFactory;
 	}
 
-	public void setSessionFactory(SessionFactoryImplementor sessionFactory) {
-		this.sessionFactory = sessionFactory;
+	public static void setSessionFactory(
+			SessionFactoryImplementor sessionFactory) {
+		ConversationManager.sessionFactory = sessionFactory;
 	}
 
 }

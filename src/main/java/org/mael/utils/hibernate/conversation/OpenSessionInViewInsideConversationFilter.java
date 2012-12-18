@@ -11,7 +11,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 public class OpenSessionInViewInsideConversationFilter extends
@@ -30,14 +29,8 @@ public class OpenSessionInViewInsideConversationFilter extends
 
 	private boolean shouldNotFilterAsyncDispatch = true;
 
-	private ConversationManager conversationManager;
-
 	@Override
 	protected void initFilterBean() throws ServletException {
-
-		this.conversationManager = WebApplicationContextUtils
-				.getRequiredWebApplicationContext(this.getServletContext())
-				.getBean(ConversationManager.class);
 
 	}
 
@@ -94,24 +87,24 @@ public class OpenSessionInViewInsideConversationFilter extends
 		conversationId = lookupConversationIdOnCookies(request);
 
 		if (conversationId == null) {
-			conversationId = startNewConversationAndStoreCookie(request,
-					response);
+			conversationId = createConversationAndStoreCookie(request, response);
 		}
 		return conversationId;
 	}
 
-	private UUID startNewConversationAndStoreCookie(HttpServletRequest request,
+	private UUID createConversationAndStoreCookie(HttpServletRequest request,
 			HttpServletResponse response) {
 		UUID conversationId;
 		log.debug(
 				"No conversation cookie found in request {}, creating new conversation.",
 				request);
 
-		conversationId = this.conversationManager.createConversation();
+		conversationId = ConversationManager.createConversation();
 
 		Cookie cookie = new Cookie(this.activeConversationCookieName,
 				conversationId.toString());
 
+		cookie.setSecure(true);
 		cookie.setMaxAge(-1); // It will expire after browser shut-down
 
 		response.addCookie(cookie);
@@ -152,14 +145,6 @@ public class OpenSessionInViewInsideConversationFilter extends
 	public void setShouldNotFilterAsyncDispatch(
 			boolean shouldNotFilterAsyncDispatch) {
 		this.shouldNotFilterAsyncDispatch = shouldNotFilterAsyncDispatch;
-	}
-
-	public ConversationManager getConversationManager() {
-		return conversationManager;
-	}
-
-	public void setConversationManager(ConversationManager conversationManager) {
-		this.conversationManager = conversationManager;
 	}
 
 	public String getActiveConversationParameterName() {
