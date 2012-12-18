@@ -1,0 +1,36 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+configurations { 
+    providedCompile 
+}
+
+dependencies {
+   
+    compile group:'org.slf4j', name:'slf4j-api', version:'1.7.+'
+    compile group:'org.springframework', name:'spring-web', version:'3.+'
+    compile group:'org.hibernate', name:'hibernate-core', version:'4.1+'
+       
+    compile group:'org.slf4j',          name:'slf4j-log4j12', version:'1.6.+'
+    compile group:'log4j',              name:'log4j', version:'1.2.+'
+    
+    providedCompile "javax.servlet:javax.servlet-api:3.+"
+    
+    testCompile group:'junit', name:'junit', version:'4.+'
+    
+}
+
+
+sourceSets {
+    sourceSets.main.compileClasspath += configurations.providedCompile
+    sourceSets.test.compileClasspath += configurations.providedCompile
+    sourceSets.test.runtimeClasspath += configurations.providedCompile
+}
+
+repositories {
+    
+    mavenCentral()
+       
+}
+
+eclipse.classpath.plusConfigurations += configurations.providedCompile
