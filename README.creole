@@ -1,4 +1,12 @@
-=Hibernate ContersationUtils=
+=Hibernate Conversation Utils=
+
+Filter and CurrentSessionContext implementations used to create a cookie-based 
+conversation with Hibernate i.e. a cookie that will be used to retrieve a previously
+created Hibernate Session to be used during serveral requests from the same
+user.
+
+This to avoid IllegalStateExceptions and problems related with Spring's 
+HibernateTransactionManager thread-bound Sessions.
 
 All code licenced under LGPL v3 or later
 

@@ -125,6 +125,7 @@ public class OpenSessionInViewInsideConversationFilter extends
 
 		request.setAttribute(ACTIVE_CONVERSATION_ATTRIBUTE_NAME, conversationId);
 
+		// Register conversation to be thread-bound
 		ThreadedRequestRegistry.setCurrentRequest(request);
 	}
 
@@ -142,6 +143,7 @@ public class OpenSessionInViewInsideConversationFilter extends
 
 		request.removeAttribute(ACTIVE_CONVERSATION_ATTRIBUTE_NAME);
 
+		// Unregister the request to be gc'ed.
 		ThreadedRequestRegistry.setCurrentRequest(null);
 
 	}
