@@ -3,6 +3,7 @@ package org.mael.utils.hibernate.conversation;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
+import static org.mael.utils.hibernate.conversation.OpenSessionInViewInsideConversationFilter.*;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -48,7 +49,19 @@ public class OsivicFilterTests {
 		HttpServletRequest request = mock(HttpServletRequest.class);
 		HttpServletResponse response = mock(HttpServletResponse.class);
 
-		NoopAssertingFilterChain chain = new NoopAssertingFilterChain();
+		NoopAssertingFilterChain chain = new NoopAssertingFilterChain(
+				new OnRequestProcessingCallbackImpl(new Object[] {}) {
+
+					@Override
+					public void testOnRequestProcessing(
+							HttpServletRequest request,
+							HttpServletResponse response) {
+						assertEquals(request,
+								ThreadedRequestRegistry
+										.getCurrentThreadRequest());
+
+					}
+				});
 
 		filter.doFilter(request, response, chain);
 
@@ -56,10 +69,8 @@ public class OsivicFilterTests {
 				new Cookie(filter.getActiveConversationCookieName(),
 						anyString()));
 
-		verify(request)
-				.setAttribute(
-						eq(OpenSessionInViewInsideConversationFilter.ACTIVE_CONVERSATION_ATTRIBUTE_NAME),
-						any(UUID.class));
+		verify(request).setAttribute(eq(ACTIVE_CONVERSATION_ATTRIBUTE_NAME),
+				any(UUID.class));
 
 	}
 
@@ -70,8 +81,6 @@ public class OsivicFilterTests {
 		HttpServletRequest request = mock(HttpServletRequest.class);
 		HttpServletResponse response = mock(HttpServletResponse.class);
 
-		NoopAssertingFilterChain chain = new NoopAssertingFilterChain();
-
 		UUID conversationId = ConversationManager.createConversation();
 
 		Cookie[] fakeCookies = new Cookie[2];
@@ -80,29 +89,45 @@ public class OsivicFilterTests {
 		fakeCookies[1] = new Cookie(filter.getActiveConversationCookieName(),
 				conversationId.toString());
 
+		when(request.getAttribute(ACTIVE_CONVERSATION_ATTRIBUTE_NAME))
+				.thenReturn(conversationId);
+
 		when(request.getCookies()).thenReturn(fakeCookies);
+
+		NoopAssertingFilterChain chain = new NoopAssertingFilterChain(
+				new OnRequestProcessingCallbackImpl(
+						new Object[] { conversationId }) {
+					@Override
+					public void testOnRequestProcessing(
+							HttpServletRequest request,
+							HttpServletResponse response) {
+
+					}
+				});
 
 		filter.doFilter(request, response, chain);
 
-		verify(request)
-				.setAttribute(
-						OpenSessionInViewInsideConversationFilter.ACTIVE_CONVERSATION_ATTRIBUTE_NAME,
-						conversationId);
+		verify(request).setAttribute(ACTIVE_CONVERSATION_ATTRIBUTE_NAME,
+				conversationId);
 
 		ConversationManager.endConversation(conversationId);
 
-	}
-
-	public void testOnRequestServing(ServletRequest request,
-			ServletResponse response) {
-		// Is the request registered for this thread?
-		assertEquals(request, ThreadedRequestRegistry.getCurrentThreadRequest());
 	}
 
 	public class NoopAssertingFilterChain implements FilterChain {
 
 		private HttpServletRequest request;
 		private HttpServletResponse response;
+
+		private OnRequestProcessingCallBack callback;
+
+		public NoopAssertingFilterChain() {
+
+		}
+
+		public NoopAssertingFilterChain(OnRequestProcessingCallBack callback) {
+			this.callback = callback;
+		}
 
 		@Override
 		public void doFilter(ServletRequest request, ServletResponse response)
@@ -111,7 +136,8 @@ public class OsivicFilterTests {
 			this.request = (HttpServletRequest) request;
 			this.response = (HttpServletResponse) response;
 
-			testOnRequestServing(request, response);
+			callback.testOnRequestProcessing((HttpServletRequest) request,
+					(HttpServletResponse) response);
 
 		}
 
@@ -129,6 +155,26 @@ public class OsivicFilterTests {
 
 		public void setRequest(HttpServletRequest request) {
 			this.request = request;
+		}
+
+	}
+
+	public interface OnRequestProcessingCallBack {
+		void testOnRequestProcessing(HttpServletRequest request,
+				HttpServletResponse response);
+	}
+
+	public class OnRequestProcessingCallbackImpl implements
+			OnRequestProcessingCallBack {
+
+		protected Object[] args;
+
+		public OnRequestProcessingCallbackImpl(Object... args) {
+			this.args = args;
+		}
+
+		public void testOnRequestProcessing(HttpServletRequest request,
+				HttpServletResponse response) {
 		}
 
 	}
