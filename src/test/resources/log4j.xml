@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+    <appender name="standarOut" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{ABSOLUTE} %-5p [%-15.15C{1}] (%-6.6t) : %m%n" />
+        </layout>
+    </appender>
+
+    <logger name="org.mael.codexarcana.web">
+        <level value="DEBUG" />
+    </logger>
+
+    <logger name="org.springframework.security">
+        <level value="INFO" />
+    </logger>
+
+    <root>
+        <priority value="INFO" />
+        <appender-ref ref="standarOut" />
+    </root>
+
+</log4j:configuration>
