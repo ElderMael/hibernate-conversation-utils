@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -126,7 +127,8 @@ public class OsivicFilterTests {
 
 		Cookie[] fakeCookies = new Cookie[2];
 
-		fakeCookies[0] = new Cookie("JSESSIONID", "9876543454433216549876543521");
+		fakeCookies[0] = new Cookie("JSESSIONID",
+				"9876543454433216549876543521");
 		fakeCookies[1] = new Cookie(filter.getActiveConversationCookieName(),
 				conversationId.toString());
 
@@ -146,10 +148,9 @@ public class OsivicFilterTests {
 							HttpServletRequest request,
 							HttpServletResponse response) {
 
-						assertEquals(
-								args[1],
-								ConversationManager
-										.getSessionFromConversation((UUID) this.args[0]));
+						assertEquals(this.args[1],
+								context.getBean(SessionFactory.class)
+										.getCurrentSession());
 
 					}
 				});
