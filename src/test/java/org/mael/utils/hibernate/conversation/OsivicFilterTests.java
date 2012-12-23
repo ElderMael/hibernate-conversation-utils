@@ -1,11 +1,13 @@
 package org.mael.utils.hibernate.conversation;
 
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
+import static org.junit.Assert.*;
+
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.UUID;
 
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -20,9 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
 public class OsivicFilterTests {
 
 	protected static final Logger log = LoggerFactory
@@ -31,22 +30,25 @@ public class OsivicFilterTests {
 	@SuppressWarnings("unused")
 	private ApplicationContext context;
 
+	private OpenSessionInViewInsideConversationFilter filter;
+
 	@Before
-	public void initApplicationContext() {
-		context = new ClassPathXmlApplicationContext(
+	public void init() {
+		this.context = new ClassPathXmlApplicationContext(
 				"org/mael/utils/hibernate/conversation/filter-context.xml");
+
+		this.filter = new OpenSessionInViewInsideConversationFilter();
+
 	}
 
 	@Test
-	public void testConversationCookieAdded() throws ServletException,
-			IOException {
-
-		OpenSessionInViewInsideConversationFilter filter = new OpenSessionInViewInsideConversationFilter();
+	public void testConversationCookieAndParameterAdded()
+			throws ServletException, IOException {
 
 		HttpServletRequest request = mock(HttpServletRequest.class);
 		HttpServletResponse response = mock(HttpServletResponse.class);
 
-		NoopFilterChain chain = new NoopFilterChain();
+		NoopAssertingFilterChain chain = new NoopAssertingFilterChain();
 
 		filter.doFilter(request, response, chain);
 
@@ -54,9 +56,50 @@ public class OsivicFilterTests {
 				new Cookie(filter.getActiveConversationCookieName(),
 						anyString()));
 
+		verify(request)
+				.setAttribute(
+						eq(OpenSessionInViewInsideConversationFilter.ACTIVE_CONVERSATION_ATTRIBUTE_NAME),
+						any(UUID.class));
+
 	}
 
-	public class NoopFilterChain implements FilterChain {
+	@Test
+	public void testAlreadyHasConversation() throws ServletException,
+			IOException {
+
+		HttpServletRequest request = mock(HttpServletRequest.class);
+		HttpServletResponse response = mock(HttpServletResponse.class);
+
+		NoopAssertingFilterChain chain = new NoopAssertingFilterChain();
+
+		UUID conversationId = ConversationManager.createConversation();
+
+		Cookie[] fakeCookies = new Cookie[2];
+
+		fakeCookies[0] = new Cookie("JSESSIONID", "9876543216549876543521");
+		fakeCookies[1] = new Cookie(filter.getActiveConversationCookieName(),
+				conversationId.toString());
+
+		when(request.getCookies()).thenReturn(fakeCookies);
+
+		filter.doFilter(request, response, chain);
+
+		verify(request)
+				.setAttribute(
+						OpenSessionInViewInsideConversationFilter.ACTIVE_CONVERSATION_ATTRIBUTE_NAME,
+						conversationId);
+
+		ConversationManager.endConversation(conversationId);
+
+	}
+
+	public void testOnRequestServing(ServletRequest request,
+			ServletResponse response) {
+		// Is the request registered for this thread?
+		assertEquals(request, ThreadedRequestRegistry.getCurrentThreadRequest());
+	}
+
+	public class NoopAssertingFilterChain implements FilterChain {
 
 		private HttpServletRequest request;
 		private HttpServletResponse response;
@@ -67,6 +110,8 @@ public class OsivicFilterTests {
 
 			this.request = (HttpServletRequest) request;
 			this.response = (HttpServletResponse) response;
+
+			testOnRequestServing(request, response);
 
 		}
 
